@@ -1,0 +1,152 @@
+Usage:
+Article div id must be article-content
+Footnote div id must be footnote-content
+
+Add [n] on the inline citation
+Add [n] before the footnote
+
+Example:
+<div id="article content">
+this text has an inline citation[1].
+</div>
+[1] This is the corresponding footnote.
+
+
+<!-- HEAD CODE //-->
+
+<script>
+var Webflow = Webflow || [];
+Webflow.push(function() {
+  //DISABLE WEBFLOW SMOOTH SCROLL TO ALLOW FOOTNOTES LINKS
+  $(function() {
+      $(document).off('click.wf-scroll');
+  });
+});
+</script>
+<noscript>
+<img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=7565066&fmt=gif" />
+</noscript>
+
+<style>
+/* Makes the [1] in the text small and raised */
+.fn-link.citation {
+    font-size: 0.75em;
+    vertical-align: super;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+/* Optional: change color of all footnote links */
+.fn-link {
+    color: #0073ff; 
+}
+
+/* Adds a subtle "highlight" effect when landing on a footnote */
+:target {
+    background-color: rgba(0, 115, 255, 0.1);
+    transition: background-color 1s ease;
+}
+
+/* Estilo do Tooltip (Balão) */
+.fn-tooltip {
+    position: absolute;
+    z-index: 1000;
+    background: #333;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.4;
+    max-width: 300px;
+    pointer-events: none; /* Não atrapalha o mouse */
+    opacity: 0;
+    transform: translate(-50%, -100%);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.fn-tooltip.is-active {
+    opacity: 1;
+    transform: translate(-50%, -110%);
+}
+
+/* Triângulo do Tooltip */
+.fn-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+</style>
+
+
+<!-- BODY CODE //-->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const article = document.getElementById('article-content');
+    const footnotes = document.getElementById('footnote-content');
+    const offset = 120;
+
+    if (!article || !footnotes) return;
+
+    // 1. Processar Texto e Notas
+    const regex = /\[(\d+)\]/g;
+    article.innerHTML = article.innerHTML.replace(regex, (match, n) => {
+        return `<a href="#fn-target-${n}" id="fn-source-${n}" class="fn-link citation" data-fn-id="${n}">${match}</a>`;
+    });
+
+    footnotes.innerHTML = footnotes.innerHTML.replace(regex, (match, n) => {
+        return `<span id="fn-target-${n}"><a href="#fn-source-${n}" class="fn-link back-link">${match}</a></span>`;
+    });
+
+    // 2. Criar Elemento do Tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'fn-tooltip';
+    document.body.appendChild(tooltip);
+
+    // 3. Lógica do Tooltip (Hover)
+    const citations = document.querySelectorAll('.fn-link.citation');
+    citations.forEach(link => {
+        link.addEventListener('mouseenter', () => {
+            const id = link.getAttribute('data-fn-id');
+            const targetNote = document.getElementById(`fn-target-${id}`);
+            
+            if (targetNote) {
+                // Pegar o texto da nota (pai do span id)
+                const noteText = targetNote.parentElement.innerText.replace(`[${id}]`, '').trim();
+                tooltip.innerText = noteText;
+                tooltip.classList.add('is-active');
+                
+                // Posicionamento
+                const rect = link.getBoundingClientRect();
+                tooltip.style.left = `${rect.left + (rect.width / 2)}px`;
+                tooltip.style.top = `${rect.top + window.scrollY - 10}px`;
+            }
+        });
+
+        link.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('is-active');
+        });
+    });
+
+    // 4. Scroll Suave (Click)
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('.fn-link');
+        if (link) {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                const pos = targetEl.getBoundingClientRect().top + window.pageYOffset - offset;
+                window.scrollTo({ top: pos, behavior: 'smooth' });
+                history.pushState(null, null, '#' + targetId);
+            }
+        }
+    });
+});
+</script>
